@@ -104,6 +104,8 @@
   /* CURVE LINK */
   .btn-curve{background:transparent;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fd);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .btn-curve:hover{border-color:var(--accent2);color:var(--accent2);}
+  .btn-quote{background:transparent;border:1px solid rgba(34,197,94,.3);border-radius:4px;padding:5px 10px;color:#22c55e;font-family:var(--fd);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;margin-left:6px;}
+  .btn-quote:hover{background:rgba(34,197,94,.1);border-color:#22c55e;}
 
   /* EMPTY STATE */
   .empty{text-align:center;padding:60px 20px;color:var(--muted);}
@@ -155,11 +157,11 @@
     <div class="slabel">Punto de Operación</div>
     <div class="fgroup">
       <label>Caudal requerido</label>
-      <div class="frow"><input type="number" id="iQ" value="500" min="0" step="1"><span class="unit">m³/min</span></div>
+      <div class="frow"><input type="number" id="iQ" min="0" step="1" placeholder="m³/min"><span class="unit">m³/min</span></div>
     </div>
     <div class="fgroup">
       <label>Presión estática requerida</label>
-      <div class="frow"><input type="number" id="iPe" value="200" min="0" step="1"><span class="unit">mm c.a.</span></div>
+      <div class="frow"><input type="number" id="iPe" min="0" step="1" placeholder="mm c.a."><span class="unit">mm c.a.</span></div>
     </div>
 
     <div class="slabel" style="margin-top:20px">Tipo de Transmisión</div>
@@ -218,6 +220,11 @@
     </div>
   </div>
 </div>
+
+<footer style="background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+  <span style="font-size:11px;color:var(--muted);">© 2025 <strong style="color:var(--text)">UVENTECH S.A.</strong> — Todos los derechos reservados. Prohibida su reproducción total o parcial sin autorización expresa.</span>
+  <span style="font-size:11px;color:var(--border);font-family:var(--fd);letter-spacing:1px;">SELECTOR DE VENTILADORES v1.0</span>
+</footer>
 
 <!-- MODAL CURVA -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
@@ -280,7 +287,7 @@ const FANS_DB = [
   {"modelo":"MAM-10 561","size":561,"rpm":2930,"dba":80.0,"puntos":[{"Q":60.0,"Pe":532.221,"kW":8.0},{"Q":70.0,"Pe":494.968,"kW":8.4},{"Q":80.0,"Pe":455.06,"kW":8.7},{"Q":90.0,"Pe":392.498,"kW":9.1},{"Q":100.0,"Pe":337.281,"kW":9.5}]},
   {"modelo":"MAM-10 501","size":501,"rpm":2900,"dba":80.0,"puntos":[{"Q":35.0,"Pe":483.742,"kW":5.5},{"Q":45.0,"Pe":463.124,"kW":6.0},{"Q":50.0,"Pe":451.82,"kW":6.3},{"Q":56.0,"Pe":433.379,"kW":6.7},{"Q":63.0,"Pe":397.324,"kW":7.0}]},
   {"modelo":"MAM-10 502","size":502,"rpm":2900,"dba":78.0,"puntos":[{"Q":35.0,"Pe":443.742,"kW":3.5},{"Q":40.0,"Pe":433.765,"kW":4.1},{"Q":45.0,"Pe":418.124,"kW":4.5},{"Q":56.0,"Pe":373.379,"kW":4.9},{"Q":63.0,"Pe":342.324,"kW":5.2}]},
-  {"modelo":"MAM-10 541","size":541,"rpm":2900,"dba":76.0,"puntos":[{"Q":28.0,"Pe":382.952,"kW":2.3},{"Q":35.0,"Pe":363.363,"kW":2.8},{"Q":40.0,"Pe":345.209,"kW":3.2},{"Q":50.0,"Pe":290.638,"kW":3.6},{"Q":63.0,"Pe":203.696,"kW":3.8}]},
+  {"modelo":"MAM-10 451","size":541,"rpm":2900,"dba":76.0,"puntos":[{"Q":28.0,"Pe":382.952,"kW":2.3},{"Q":35.0,"Pe":363.363,"kW":2.8},{"Q":40.0,"Pe":345.209,"kW":3.2},{"Q":50.0,"Pe":290.638,"kW":3.6},{"Q":63.0,"Pe":203.696,"kW":3.8}]},
   {"modelo":"MAM-10 452","size":452,"rpm":2900,"dba":75.0,"puntos":[{"Q":22.0,"Pe":344.476,"kW":1.8},{"Q":28.0,"Pe":327.952,"kW":2.0},{"Q":35.0,"Pe":298.363,"kW":2.4},{"Q":40.0,"Pe":265.209,"kW":2.6},{"Q":50.0,"Pe":175.638,"kW":2.8}]},
   {"modelo":"MAM-10 401","size":401,"rpm":2850,"dba":73.0,"puntos":[{"Q":18.0,"Pe":294.089,"kW":1.4},{"Q":22.0,"Pe":283.701,"kW":1.5},{"Q":28.0,"Pe":253.599,"kW":1.7},{"Q":35.0,"Pe":198.749,"kW":1.9},{"Q":40.0,"Pe":161.121,"kW":2.1}]},
   {"modelo":"MAM-10 402","size":402,"rpm":2850,"dba":72.0,"puntos":[{"Q":10.0,"Pe":276.633,"kW":0.7},{"Q":14.0,"Pe":268.4,"kW":0.9},{"Q":22.0,"Pe":228.701,"kW":1.1},{"Q":25.0,"Pe":208.953,"kW":1.3},{"Q":31.0,"Pe":162.639,"kW":1.5}]},
@@ -328,6 +335,43 @@ let arreglo = 4; // 4 = acople directo, 1 = poleas y correas
 let chartInst = null;
 
 // ============================================================
+function pedirCotizacion(modelo, kW, eta, rpm) {
+  const Q  = document.getElementById('iQ').value  || '—';
+  const Pe = document.getElementById('iPe').value || '—';
+  const T  = document.getElementById('iT').value  || '20';
+  const h  = document.getElementById('iH').value  || '0';
+
+  const asunto = encodeURIComponent(`Solicitud de cotización — ${modelo}`);
+  const cuerpo = encodeURIComponent(
+`Hola,
+
+Me gustaría pedir cotización por el equipo seleccionado "${modelo}".
+
+Punto de operación requerido:
+  • Caudal:             ${Q} m³/min
+  • Presión estática:   ${Pe} mm c.a.
+  • Temperatura:        ${T} °C
+  • Altitud:            ${h} m.s.n.m.
+
+Datos del equipo seleccionado:
+  • Modelo:             ${modelo}
+  • Potencia en el eje: ${kW} kW
+  • Rendimiento:        ${eta}%
+  • Velocidad:          ${rpm} RPM
+
+Quedo a la espera de su respuesta.
+
+Saludos.`
+  );
+
+  const a = document.createElement('a');
+  a.href = `mailto:info@uventech.com?subject=${asunto}&body=${cuerpo}`;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => document.body.removeChild(a), 500);
+}
+
 // INIT
 // ============================================================
 function init() {
@@ -384,38 +428,36 @@ function interp(pts, Q) {
 
 // ============================================================
 // ARREGLO 4 (ACOPLE DIRECTO): RPM fija, r variable [0.5, 1.2]
-// Busca r tal que Pe_curva(Q_bus/r) * r = Pe_target
-// kW = kW_curva(Q_bus) * r * (rho/rho_ref)  ← evaluado en Q_bus, NO en Q_bus/r
+// El ancho del rotor escala el caudal: Q_bus = Q_cat * r
+// Pe NO escala con r — se encuentra Q_cat donde Pe_curve(Q_cat) = Pe_target
+// Luego r = Q_bus / Q_cat
+// kW = kW_interp(Q_bus) * r * (rho/rho_ref)
 // ============================================================
 function solveArr4(fan, Q_bus, Pe_target, rho, rho_ref) {
-  const R_MIN=0.5, R_MAX=1.2, N=400;
-  const step=(R_MAX-R_MIN)/N;
-  let prevV=null, prevR=null;
-  for (let i=0;i<=N;i++) {
-    const r=R_MIN+i*step;
-    const ip=interp(fan.puntos, Q_bus/r);
-    if (!ip) continue;
-    const v=ip.Pe*r - Pe_target;
-    if (prevV!==null && prevV*v<=0) {
-      let lo=prevR, hi=r;
-      for (let k=0;k<25;k++) {
-        const mid=(lo+hi)/2;
-        const ip2=interp(fan.puntos,Q_bus/mid);
-        if (!ip2) break;
-        const v2=ip2.Pe*mid-Pe_target;
-        if (Math.abs(v2)<0.001){lo=hi=mid;break;}
-        if (prevV*v2<=0) hi=mid; else {prevV=v2;lo=mid;}
-      }
-      const rf=(lo+hi)/2;
-      // kW evaluado en Q_bus (no en Q_bus/rf), escalado por r y densidad
-      const ipQ = interp(fan.puntos, Q_bus);
-      if (!ipQ) return null;
-      const kW_final = ipQ.kW * rf * (rho/rho_ref);
-      return { r:rf, kW:kW_final, rpm:fan.rpm };
+  const pts = [...fan.puntos].sort((a,b)=>a.Q-b.Q);
+
+  // Invertir la curva Pe(Q): encontrar Q_cat donde Pe = Pe_target
+  let Q_cat = null;
+  for (let i=0; i<pts.length-1; i++) {
+    const p0=pts[i], p1=pts[i+1];
+    // Pe decrece con Q — verificar que Pe_target esté en el intervalo
+    const peHi=Math.max(p0.Pe,p1.Pe), peLo=Math.min(p0.Pe,p1.Pe);
+    if (Pe_target >= peLo && Pe_target <= peHi) {
+      const t = (Pe_target - p0.Pe) / (p1.Pe - p0.Pe);
+      Q_cat = p0.Q + t * (p1.Q - p0.Q);
+      break;
     }
-    prevV=v; prevR=r;
   }
-  return null;
+  if (Q_cat === null) return null;
+
+  const r = Q_bus / Q_cat;
+  if (r < 0.5 || r > 1.2) return null;
+
+  // kW evaluado en Q_cat (= Q_bus/r), escalado por r y densidad
+  const ipCat = interp(fan.puntos, Q_cat);
+  if (!ipCat) return null;
+  const kW_final = ipCat.kW * r * (rho/rho_ref);
+  return { r, kW: kW_final, rpm: fan.rpm };
 }
 
 // ============================================================
@@ -513,7 +555,38 @@ function calcular() {
     });
   });
 
-  results.sort((a,b)=>a.size-b.size||a.modelo.localeCompare(b.modelo));
+  // ── Puntaje combinado (mayor = mejor) ──────────────────────
+  // Normalizar cada criterio al rango del set de resultados, luego ponderar
+  const W_ETA=0.40, W_R=0.30, W_KW=0.20, W_DBA=0.10;
+
+  if (results.length > 1) {
+    const etas = results.map(x=>x.eta);
+    const rs   = results.map(x=>x.r);
+    const kws  = results.map(x=>x.kW);
+    const dbas = results.map(x=>x.dba||0);
+
+    const norm = (v, lo, hi) => hi===lo ? 0.5 : (v-lo)/(hi-lo);
+
+    const etaLo=Math.min(...etas), etaHi=Math.max(...etas);
+    const kwLo =Math.min(...kws),  kwHi =Math.max(...kws);
+    const dbaLo=Math.min(...dbas), dbaHi=Math.max(...dbas);
+
+    results.forEach(x => {
+      // r score: mejor cuando r más cercano a 1.0
+      const rDist = results.map(z=>Math.abs(z.r-1.0));
+      const rDistLo=Math.min(...rDist), rDistHi=Math.max(...rDist);
+      const rScore = rDistHi===rDistLo ? 0.5 : 1 - norm(Math.abs(x.r-1.0), rDistLo, rDistHi);
+
+      x.score = W_ETA * norm(x.eta, etaLo, etaHi)   // η: mayor es mejor
+              + W_R   * rScore                         // r: más cerca de 1 es mejor
+              + W_KW  * (1 - norm(x.kW, kwLo, kwHi)) // kW: menor es mejor
+              + W_DBA * (1 - norm(x.dba||dbaLo, dbaLo, dbaHi)); // dBA: menor es mejor
+    });
+
+    results.sort((a,b) => b.score - a.score);
+  }
+  // ────────────────────────────────────────────────────────────
+
   renderResults(results, Pe_cat, rho, Q_bus, Pe_bus);
 }
 
@@ -542,6 +615,7 @@ function renderResults(results, Pe_cat, rho, Q_bus, Pe_bus) {
     <th>Potencia eje</th>
     <th>Rendimiento</th>
     <th>Ruido</th>
+    <th title="Puntaje combinado: η×40% + r×30% + kW×20% + dBA×10%">Score ★</th>
     <th></th>
   </tr></thead><tbody>`;
 
@@ -568,6 +642,9 @@ function renderResults(results, Pe_cat, rho, Q_bus, Pe_bus) {
 
     const dbaColor = res.dba<75?'#86efac':res.dba<85?'#a78bfa':res.dba<95?'#fbbf24':'#f87171';
 
+    const scoreVal = res.score != null ? (res.score*100).toFixed(0) : '—';
+    const scoreColor = res.score>=0.7?'#22c55e':res.score>=0.45?'#f59e0b':'#94a3b8';
+
     html+=`<tr>
       <td><div class="td-modelo">${res.modelo}</div><div class="td-sub">${res.serie}</div></td>
       ${rpmCell}
@@ -578,7 +655,11 @@ function renderResults(results, Pe_cat, rho, Q_bus, Pe_bus) {
         <span class="eta-val" style="color:${etaColor}">${pct}%</span>
       </div></td>
       <td class="dba-val" style="color:${dbaColor}">${res.dba!=null?res.dba.toFixed(1)+' dBA':'—'}</td>
-      <td><button class="btn-curve" onclick="openCurva(${idx})">📈 Ver curva</button></td>
+      <td style="font-family:var(--fd);font-size:16px;font-weight:700;color:${scoreColor};text-align:center">${scoreVal}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-curve" onclick="openCurva(${idx})">📈 Ver curva</button>
+        <button class="btn-quote" onclick="pedirCotizacion('${res.modelo}','${(res.kW).toFixed(2)}','${(res.eta*100).toFixed(1)}','${res.rpm}')">✉ Cotizar</button>
+      </td>
     </tr>`;
   });
 
@@ -647,15 +728,13 @@ function buildChart(res, fan) {
       const ip=interp(fan.puntos,Q);
       if (ip) { catPe.push({x:Q,y:ip.Pe}); catKw.push({x:Q,y:ip.kW}); }
     }
-    // operating curve scaled by r
-    const Qs=Q_min*r, Qe=Q_max*r;
+    // operating curve: Q_op = Q_cat * r, Pe unchanged, kW = kW(Q_cat)*r
     for (let i=0;i<=N;i++) {
-      const Qop=Qs+i*(Qe-Qs)/N;
-      const ip=interp(fan.puntos,Qop/r);
+      const Q_cat=Q_min+i*(Q_max-Q_min)/N;
+      const ip=interp(fan.puntos,Q_cat);
       if (ip) {
-        opPe.push({x:Qop, y:ip.Pe*r});
-        // kW at Q_bus * r (density already applied in solve)
-        opKw.push({x:Qop, y:ip.kW*r*(res.rho/res.rho_ref)});
+        opPe.push({x:Q_cat*r, y:ip.Pe});
+        opKw.push({x:Q_cat*r, y:ip.kW*r*(res.rho/res.rho_ref)});
       }
     }
   } else {
@@ -682,13 +761,13 @@ function buildChart(res, fan) {
   const selPe=[{x:res.Q_bus, y:res.Pe_bus}];
   const selKw=[{x:res.Q_bus, y:res.kW}];
 
-  // ---- axis ranges ----
+  // ---- axis ranges: ±20% del rango real de cada curva ----
   const allPe = [...catPe, ...opPe].map(p=>p.y).filter(v=>v>0);
   const allKw = [...catKw, ...opKw].map(p=>p.y).filter(v=>v>0);
-  const peMin = Math.pow(10, Math.floor(Math.log10(Math.min(...allPe)*0.9)));
-  const peMax = Math.pow(10, Math.ceil (Math.log10(Math.max(...allPe)*1.1)));
-  const kwMin = Math.pow(10, Math.floor(Math.log10(Math.min(...allKw)*0.9)));
-  const kwMax = Math.pow(10, Math.ceil (Math.log10(Math.max(...allKw)*1.1)));
+  const peMin = Math.min(...allPe) * 0.90;
+  const peMax = Math.max(...allPe) * 1.10;
+  const kwMin = Math.min(...allKw) * 0.90;
+  const kwMax = Math.max(...allKw) * 1.10;
 
   const opColor = arr4 ? '#e8a020' : '#3b82f6';
   const opLabel = arr4
@@ -705,13 +784,6 @@ function buildChart(res, fan) {
       datasets:[
         // --- Pe curves (yAxisID: 'yPe') ---
         {
-          label:`Pe catálogo (${fan.rpm} rpm)`,
-          data:catPe, yAxisID:'yPe',
-          showLine:true, fill:false,
-          borderColor:'rgba(100,116,139,0.45)', borderWidth:1.5, borderDash:[5,4],
-          pointRadius:0, tension:0.25, order:5
-        },
-        {
           label: opLabel,
           data:opPe, yAxisID:'yPe',
           showLine:true, fill:false,
@@ -719,13 +791,6 @@ function buildChart(res, fan) {
           pointRadius:0, tension:0.25, order:3
         },
         // --- kW curves (yAxisID: 'yKw') ---
-        {
-          label:`kW catálogo (${fan.rpm} rpm)`,
-          data:catKw, yAxisID:'yKw',
-          showLine:true, fill:false,
-          borderColor:'rgba(100,116,139,0.35)', borderWidth:1.5, borderDash:[5,4],
-          pointRadius:0, tension:0.25, order:6
-        },
         {
           label: opKwLabel,
           data:opKw, yAxisID:'yKw',
@@ -770,13 +835,17 @@ function buildChart(res, fan) {
         },
         tooltip:{
           callbacks:{
+            title(items){
+              if(!items.length) return '';
+              return `Q = ${items[0].raw.x.toFixed(1)} m³/min`;
+            },
             label(ctx){
               const d=ctx.raw;
               const axis=ctx.dataset.yAxisID;
-              if(ctx.datasetIndex>=4) {
+              if(ctx.datasetIndex>=2) {
                 return axis==='yPe'
-                  ? `Pe = ${d.y.toFixed(1)} mm c.a.  @  Q = ${d.x.toFixed(1)}`
-                  : `kW = ${d.y.toFixed(2)} kW  @  Q = ${d.x.toFixed(1)}`;
+                  ? `Pe = ${d.y.toFixed(1)} mm c.a.`
+                  : `kW = ${d.y.toFixed(2)} kW`;
               }
               return axis==='yPe'
                 ? `Pe = ${d.y.toFixed(1)} mm c.a.`
@@ -787,13 +856,17 @@ function buildChart(res, fan) {
       },
       scales:{
         x:{
-          type:'linear',
+          type:'logarithmic',
           title:{display:true, text:'Caudal  Q  [m³/min]', color:'#64748b', font:{family:'Barlow Condensed',size:12}},
           grid:{color:'rgba(42,47,56,0.9)'},
-          ticks:{color:'#64748b', font:{family:'Barlow Condensed'}}
+          ticks:{
+            color:'#64748b',
+            font:{family:'Barlow Condensed'},
+            callback: v => Number.isInteger(Math.log10(v)) || [1,2,3,5,7].includes(Math.round(v/Math.pow(10,Math.floor(Math.log10(v))))) ? v.toLocaleString() : ''
+          }
         },
         yPe:{
-          type:'logarithmic',
+          type:'linear',
           position:'left',
           title:{display:true, text:'Presión estática  Pe  [mm c.a.]', color:'#e8a020', font:{family:'Barlow Condensed',size:12}},
           min: peMin, max: peMax,
@@ -801,11 +874,11 @@ function buildChart(res, fan) {
           ticks:{
             color:'#e8a020',
             font:{family:'Barlow Condensed'},
-            callback: v => Number.isInteger(Math.log10(v)) ? v.toLocaleString() : ''
+            callback: v => v.toFixed(0)
           }
         },
         yKw:{
-          type:'logarithmic',
+          type:'linear',
           position:'right',
           title:{display:true, text:'Potencia en el eje  [kW]', color:'#a78bfa', font:{family:'Barlow Condensed',size:12}},
           min: kwMin, max: kwMax,
@@ -813,7 +886,7 @@ function buildChart(res, fan) {
           ticks:{
             color:'#a78bfa',
             font:{family:'Barlow Condensed'},
-            callback: v => Number.isInteger(Math.log10(v)) ? v.toLocaleString() : ''
+            callback: v => v.toFixed(1)
           }
         }
       }
