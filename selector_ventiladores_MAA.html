@@ -453,13 +453,16 @@ function registrarUsuario() {
 }
 
 function enviarASheets(data) {
-  // Usamos no-cors para evitar error CORS — el sheet igual recibe los datos
+  // Usar form-urlencoded con no-cors — más compatible con Apps Script
+  const body = Object.entries(data)
+    .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v||''))
+    .join('&');
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).catch(() => {}); // silenciar errores de red
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  }).catch(() => {});
 }
 
 function registrarBusqueda(Q, Pe, T, h, modelos) {
