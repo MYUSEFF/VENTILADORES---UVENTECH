@@ -1,8 +1,8 @@
 {
-  "name": "Selector de Ventiladores — UVENTECH S.A.",
-  "short_name": "Ventiladores",
+  "name": "Seleccion de Ventiladores UVENTECH",
+  "short_name": "UVENTECH",
   "description": "Selección técnica de ventiladores industriales por punto de operación",
-  "start_url": "./selector_ventiladores_MAA.html",
+  "start_url": "./Seleccion de Ventiladores UVENTECH.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0e10",
