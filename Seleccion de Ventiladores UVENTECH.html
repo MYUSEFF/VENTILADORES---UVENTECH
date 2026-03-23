@@ -550,6 +550,17 @@ onAuthStateChanged(auth, async user => {
   // Approved — show app
   hideAuthOverlay(user.email, data);
   startSessionTimer();
+
+  // Registrar cada login en Firestore
+  try {
+    await addDoc(collection(db, 'logins'), {
+      uid: user.uid,
+      email: user.email,
+      nombre: data.nombre || '',
+      empresa: data.empresa || '',
+      fecha: serverTimestamp()
+    });
+  } catch(e) { /* silent */ }
 });
 
 // ── UI helpers ──────────────────────────────────────────
