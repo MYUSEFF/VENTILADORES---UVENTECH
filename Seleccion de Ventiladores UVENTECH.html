@@ -21,10 +21,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#0d0e10; --surface:#13161a; --surface2:#1c2028; --surface3:#232830;
-    --border:#2a2f38; --accent:#e8a020; --accent2:#3b82f6;
+    --bg:#f0f4f2; --surface:#ffffff; --surface2:#e8f0ec; --surface3:#d4e6da;
+    --border:#b8d4c4; --accent:#1f9a54; --accent2:#0f7a3e;
     --green:#22c55e; --red:#ef4444; --orange:#f97316;
-    --text:#e2e8f0; --muted:#64748b;
+    --text:#1a2e22; --muted:#4a6b58;
     --fd:'Barlow Condensed',sans-serif; --fb:'Barlow',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -104,6 +104,34 @@
   /* CURVE LINK */
   .btn-curve{background:transparent;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fd);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .btn-curve:hover{border-color:var(--accent2);color:var(--accent2);}
+  .btn-pdf{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+  .btn-pdf:hover{opacity:.85;}
+
+  /* ── ESTILOS DE IMPRESIÓN / PDF ───────────────────────── */
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: fixed; top: 0; left: 0; width: 100%; }
+    @page { size: A4; margin: 15mm; }
+  }
+  #print-area {
+    display: none;
+    font-family: 'Barlow', sans-serif;
+    color: #1a2e22;
+    background: #fff;
+    padding: 24px;
+  }
+  .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1f9a54; padding-bottom: 12px; margin-bottom: 16px; }
+  .pdf-modelo { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; color: #1f9a54; }
+  .pdf-subtitle { font-size: 11px; color: #4a6b58; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .pdf-section { margin-bottom: 14px; }
+  .pdf-section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #1f9a54; border-bottom: 1px solid #b8d4c4; padding-bottom: 4px; margin-bottom: 8px; }
+  .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+  .pdf-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px solid #e8f0ec; }
+  .pdf-row-label { color: #4a6b58; }
+  .pdf-row-val { font-weight: 700; color: #1a2e22; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; }
+  .pdf-chart { width: 100%; margin-top: 8px; border: 1px solid #b8d4c4; border-radius: 8px; overflow: hidden; }
+  .pdf-footer { margin-top: 16px; border-top: 1px solid #b8d4c4; padding-top: 8px; font-size: 10px; color: #4a6b58; display: flex; justify-content: space-between; }
   .btn-quote{background:transparent;border:1px solid rgba(34,197,94,.3);border-radius:4px;padding:5px 10px;color:#22c55e;font-family:var(--fd);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;margin-left:6px;}
   .btn-quote:hover{background:rgba(34,197,94,.1);border-color:#22c55e;}
 
@@ -340,7 +368,10 @@
         <div class="modal-title" id="modal_title">—</div>
         <div class="modal-sub" id="modal_sub">Curva característica</div>
       </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-pdf" onclick="generarPDF()" title="Descargar ficha técnica en PDF">⬇ PDF</button>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div id="rpm_info_box" class="rpm-info" style="display:none"></div>
@@ -354,6 +385,9 @@
 
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- ÁREA DE IMPRESIÓN PDF -->
+<div id="print-area"></div>
 <script type="module">
 // ============================================================
 // BASE DE DATOS COMPLETA (71 modelos, extraída del Excel oficial)
@@ -437,6 +471,7 @@ const FANS_DB = [
 // ============================================================
 const ALL_SERIES = [...new Set(FANS_DB.map(f=>f.modelo.split(' ')[0]))].sort();
 let activeSeries = new Set(ALL_SERIES);
+let currentResult = null;
 let arreglo = 4; // 4 = acople directo, 1 = poleas y correas
 let chartInst = null;
 
@@ -1013,6 +1048,7 @@ function renderResults(results, Pe_cat, rho, Q_bus, Pe_bus) {
 // ============================================================
 function openCurva(idx) {
   const res = window._lastResults[idx];
+  currentResult = res;  // guardar para PDF
   const fan = res.fan;
 
   document.getElementById('modal_title').textContent = fan.modelo;
@@ -1134,7 +1170,7 @@ function buildChart(res, fan) {
           label: opKwLabel,
           data:opKw, yAxisID:'yKw',
           showLine:true, fill:false,
-          borderColor:'#a78bfa', borderWidth:2,
+          borderColor:'#e8760a', borderWidth:2,
           pointRadius:0, tension:0.25, order:4
         },
         // --- selection points ---
@@ -1143,7 +1179,7 @@ function buildChart(res, fan) {
           data:selPe, yAxisID:'yPe',
           showLine:false,
           pointRadius:10, pointHoverRadius:13,
-          pointBackgroundColor:'#e8a020',
+          pointBackgroundColor:'#1f9a54',
           pointBorderColor:'#fff', pointBorderWidth:2,
           order:1
         },
@@ -1152,7 +1188,7 @@ function buildChart(res, fan) {
           data:selKw, yAxisID:'yKw',
           showLine:false,
           pointRadius:8, pointHoverRadius:11,
-          pointBackgroundColor:'#a78bfa',
+          pointBackgroundColor:'#e8760a',
           pointBorderColor:'#fff', pointBorderWidth:2,
           order:2
         }
@@ -1166,7 +1202,7 @@ function buildChart(res, fan) {
       plugins:{
         legend:{
           labels:{
-            color:'#94a3b8',
+            color:'#4a6b58',
             font:{family:'Barlow Condensed',size:11},
             boxWidth:16, padding:12,
             filter: item => !item.text.includes('catálogo') || true
@@ -1176,17 +1212,23 @@ function buildChart(res, fan) {
           callbacks:{
             title(items){
               if(!items.length) return '';
-              return `Q = ${items[0].raw.x.toFixed(1)} m³/min`;
+              // Usar el punto de operación real, no x del gráfico
+              const item = items[0];
+              return `Q = ${item.raw.x.toFixed(1)} m³/min`;
             },
             label(ctx){
-              const d=ctx.raw;
-              const axis=ctx.dataset.yAxisID;
-              if(ctx.datasetIndex>=2) {
-                return axis==='yPe'
-                  ? `Pe = ${d.y.toFixed(1)} mm c.a.`
-                  : `kW = ${d.y.toFixed(2)} kW`;
+              const d = ctx.raw;
+              const label = ctx.dataset.label || '';
+              // Puntos de operación (datasetIndex 2 = Pe, 3 = kW)
+              if(label === 'Punto — Pe') {
+                return `Pe operación = ${d.y.toFixed(1)} mm c.a.`;
               }
-              return axis==='yPe'
+              if(label === 'Punto — kW') {
+                return `kW operación = ${d.y.toFixed(2)} kW`;
+              }
+              // Curvas
+              const axis = ctx.dataset.yAxisID;
+              return axis === 'yPe'
                 ? `Pe = ${d.y.toFixed(1)} mm c.a.`
                 : `kW = ${d.y.toFixed(2)} kW`;
             }
@@ -1196,10 +1238,10 @@ function buildChart(res, fan) {
       scales:{
         x:{
           type:'logarithmic',
-          title:{display:true, text:'Caudal  Q  [m³/min]', color:'#64748b', font:{family:'Barlow Condensed',size:12}},
-          grid:{color:'rgba(42,47,56,0.9)'},
+          title:{display:true, text:'Caudal  Q  [m³/min]', color:'#4a6b58', font:{family:'Barlow Condensed',size:12}},
+          grid:{color:'rgba(184,212,196,0.6)'},
           ticks:{
-            color:'#64748b',
+            color:'#4a6b58',
             font:{family:'Barlow Condensed'},
             callback: v => Number.isInteger(Math.log10(v)) || [1,2,3,5,7].includes(Math.round(v/Math.pow(10,Math.floor(Math.log10(v))))) ? v.toLocaleString() : ''
           }
@@ -1207,11 +1249,11 @@ function buildChart(res, fan) {
         yPe:{
           type:'linear',
           position:'left',
-          title:{display:true, text:'Presión estática  Pe  [mm c.a.]', color:'#e8a020', font:{family:'Barlow Condensed',size:12}},
+          title:{display:true, text:'Presión estática  Pe  [mm c.a.]', color:'#1f9a54', font:{family:'Barlow Condensed',size:12}},
           min: peMin, max: peMax,
           grid:{color:'rgba(232,160,32,0.08)'},
           ticks:{
-            color:'#e8a020',
+            color:'#1f9a54',
             font:{family:'Barlow Condensed'},
             callback: v => v.toFixed(0)
           }
@@ -1219,11 +1261,11 @@ function buildChart(res, fan) {
         yKw:{
           type:'linear',
           position:'right',
-          title:{display:true, text:'Potencia en el eje  [kW]', color:'#a78bfa', font:{family:'Barlow Condensed',size:12}},
+          title:{display:true, text:'Potencia en el eje  [kW]', color:'#1f9a54', font:{family:'Barlow Condensed',size:12}},
           min: kwMin, max: kwMax,
           grid:{display:false},
           ticks:{
-            color:'#a78bfa',
+            color:'#1f9a54',
             font:{family:'Barlow Condensed'},
             callback: v => v.toFixed(1)
           }
@@ -1231,6 +1273,77 @@ function buildChart(res, fan) {
       }
     }
   });
+}
+
+function generarPDF() {
+  const res = currentResult;
+  if (!res) return;
+
+  const fecha = new Date().toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const hora  = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+
+  // Capturar el gráfico como imagen
+  const canvas = document.getElementById('curveChart');
+  const chartImg = canvas ? canvas.toDataURL('image/png') : '';
+
+  // Arreglo texto
+  const arrTexto = res.arr === 4 ? 'Acople directo (Arr. 4)' : 'Poleas y correas (Arr. 1)';
+  const anchoTexto = res.arr === 4
+    ? `${(res.r*100).toFixed(0)}% del ancho nominal`
+    : '100% (nominal)';
+
+  const html = `
+    <div class="pdf-header">
+      <div>
+        <div style="font-size:11px;color:#4a6b58;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">FICHA TÉCNICA — EQUIPO SELECCIONADO</div>
+        <div class="pdf-modelo">${res.modelo}</div>
+        <div class="pdf-subtitle">${res.serie} · ${arrTexto}</div>
+      </div>
+      <div style="text-align:right;">
+        <svg viewBox="0 0 220 60" width="160" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="48" font-family="Barlow Condensed, sans-serif" font-size="52" font-weight="700" fill="#1f9a54">uventech</text>
+        </svg>
+        <div style="font-size:10px;color:#4a6b58;">www.uventech.com</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="pdf-section">
+        <div class="pdf-section-title">Punto de operación</div>
+        <div class="pdf-row"><span class="pdf-row-label">Caudal</span><span class="pdf-row-val">${res.Q_bus.toFixed(1)} m³/min</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Presión estática</span><span class="pdf-row-val">${res.Pe_bus.toFixed(1)} mm c.a.</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Temperatura</span><span class="pdf-row-val">${document.getElementById('iT').value || 20} °C</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Altitud</span><span class="pdf-row-val">${document.getElementById('iH').value || 0} m.s.n.m.</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Densidad del aire</span><span class="pdf-row-val">${res.rho.toFixed(4)} kg/m³</span></div>
+      </div>
+      <div class="pdf-section">
+        <div class="pdf-section-title">Datos del equipo</div>
+        <div class="pdf-row"><span class="pdf-row-label">Modelo</span><span class="pdf-row-val">${res.modelo}</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Arreglo</span><span class="pdf-row-val">${arrTexto}</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Ancho del rotor</span><span class="pdf-row-val">${anchoTexto}</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Velocidad</span><span class="pdf-row-val">${res.rpm} RPM</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Potencia en el eje</span><span class="pdf-row-val">${res.kW.toFixed(2)} kW</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Rendimiento</span><span class="pdf-row-val">${(res.eta*100).toFixed(1)}%</span></div>
+        <div class="pdf-row"><span class="pdf-row-label">Nivel de ruido</span><span class="pdf-row-val">${res.dba != null ? res.dba.toFixed(1)+' dBA' : '—'}</span></div>
+      </div>
+    </div>
+
+    <div class="pdf-section">
+      <div class="pdf-section-title">Curva de prestaciones</div>
+      ${chartImg ? `<img src="${chartImg}" style="width:100%;border:1px solid #b8d4c4;border-radius:6px;" />` : ''}
+    </div>
+
+    <div class="pdf-footer">
+      <span>© ${new Date().getFullYear()} UVENTECH S.A. — Todos los derechos reservados.</span>
+      <span>Generado: ${fecha} ${hora}</span>
+    </div>
+  `;
+
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = html;
+  printArea.style.display = 'block';
+  window.print();
+  setTimeout(() => { printArea.style.display = 'none'; }, 1000);
 }
 
 function closeModal() {
@@ -1247,6 +1360,7 @@ window.calcular       = calcular;
 window.setArreglo     = setArreglo;
 window.openCurva      = openCurva;
 window.closeModal     = closeModal;
+window.generarPDF     = generarPDF;
 window.pedirCotizacion= pedirCotizacion;
 window.switchTab      = switchTab;
 window.doLogin        = doLogin;
