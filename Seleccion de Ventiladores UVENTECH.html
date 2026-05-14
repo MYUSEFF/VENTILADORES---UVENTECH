@@ -524,7 +524,7 @@ Saludos.`
 // FIREBASE AUTH
 // ============================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, addDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -541,6 +541,9 @@ const firebaseConfig = {
 const fbApp  = initializeApp(firebaseConfig);
 const auth   = getAuth(fbApp);
 const db     = getFirestore(fbApp);
+
+// Sesión solo dura mientras la pestaña está abierta — al cerrar el navegador requiere login nuevamente
+setPersistence(auth, browserSessionPersistence);
 
 // ── Session timer (30 min) ──────────────────────────────
 const SESSION_MS = 30 * 60 * 1000;
